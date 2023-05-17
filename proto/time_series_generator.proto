@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package timeseries;
+
+message TimeSeriesConfig {
+  float sample_rate = 1;
+  repeated ToneConfig tones = 2;
+}
+
+message ToneConfig {
+    float initial_phase = 1;
+    float amplitude = 2;
+    float frequency = 3;
+}
+
+message TimeSeriesData {
+  repeated float data = 1;
+}
+
+service TimeSeriesGenerator {
+  rpc GenerateTimeSeries (TimeSeriesConfig) returns (TimeSeriesData) {}
+}
