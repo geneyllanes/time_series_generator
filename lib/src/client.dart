@@ -12,7 +12,7 @@ class Client {
 
     // Start the stream
     final request = TimeSeriesConfig()
-      ..sampleRate = 100.0
+      ..sampleRate = 10000.0
       ..tones.add(
         ToneConfig()
           ..initialPhase = 0.0
