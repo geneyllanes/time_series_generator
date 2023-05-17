@@ -18,5 +18,5 @@ message TimeSeriesData {
 }
 
 service TimeSeriesGenerator {
-  rpc GenerateTimeSeries (TimeSeriesConfig) returns (TimeSeriesData) {}
+    rpc GenerateTimeSeries (TimeSeriesConfig) returns (stream TimeSeriesData) {}
 }

@@ -25,10 +25,12 @@ class TimeSeriesGeneratorClient extends $grpc.Client {
       $core.Iterable<$grpc.ClientInterceptor>? interceptors})
       : super(channel, options: options, interceptors: interceptors);
 
-  $grpc.ResponseFuture<$0.TimeSeriesData> generateTimeSeries(
+  $grpc.ResponseStream<$0.TimeSeriesData> generateTimeSeries(
       $0.TimeSeriesConfig request,
       {$grpc.CallOptions? options}) {
-    return $createUnaryCall(_$generateTimeSeries, request, options: options);
+    return $createStreamingCall(
+        _$generateTimeSeries, $async.Stream.fromIterable([request]),
+        options: options);
   }
 }
 
@@ -40,17 +42,17 @@ abstract class TimeSeriesGeneratorServiceBase extends $grpc.Service {
         'GenerateTimeSeries',
         generateTimeSeries_Pre,
         false,
-        false,
+        true,
         ($core.List<$core.int> value) => $0.TimeSeriesConfig.fromBuffer(value),
         ($0.TimeSeriesData value) => value.writeToBuffer()));
   }
 
-  $async.Future<$0.TimeSeriesData> generateTimeSeries_Pre(
+  $async.Stream<$0.TimeSeriesData> generateTimeSeries_Pre(
       $grpc.ServiceCall call,
-      $async.Future<$0.TimeSeriesConfig> request) async {
-    return generateTimeSeries(call, await request);
+      $async.Future<$0.TimeSeriesConfig> request) async* {
+    yield* generateTimeSeries(call, await request);
   }
 
-  $async.Future<$0.TimeSeriesData> generateTimeSeries(
+  $async.Stream<$0.TimeSeriesData> generateTimeSeries(
       $grpc.ServiceCall call, $0.TimeSeriesConfig request);
 }
