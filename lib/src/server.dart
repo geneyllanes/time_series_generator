@@ -53,11 +53,34 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
   /// are pre-allocated with the required length to avoid
   /// unnecessary allocations within the loop.
   ///
+  /// The batchSize variable is introduced to define the number of
+  /// data points to batch together before sending them through the
+  /// stream. You can adjust this value according to your requirements
+  /// and the overhead you want to reduce.
+  ///
+  /// The intervalMicroseconds variable calculates the desired timer
+  /// interval in microseconds based on the desired sampleRate.
+  ///
+  /// The stopwatch is used to measure the time taken to generate a
+  /// batch of data points.
+  ///
+  /// After generating and yielding a batch of data points, the
+  /// elapsed time is checked against the desired interval. If the
+  /// elapsed time is less than the interval, the code waits for the
+  /// remaining time to achieve the desired interval.
+  ///
+  /// By batching data points and fine-tuning the timer interval,
+  /// you can reduce the overhead and achieve optimal performance
+  /// for the time series generation. Adjust the batchSize and
+  /// intervalMicroseconds values based on your specific requirements
+  /// and performance testing.
+  ///
   Stream<TimeSeriesData> generateTimeSeriesStream(
       double sampleRate, List<ToneConfig> toneConfigs) async* {
     _logger.info('Starting time series generation.');
 
-    final timeSeries = List<double>.filled(1000, 0.0);
+    final batchSize = 100; // Number of data points to batch together
+    final timeSeries = List<double>.filled(batchSize, 0.0);
     final int toneConfigsLength = toneConfigs.length;
 
     final constants = List<double>.filled(toneConfigsLength, 0.0);
@@ -71,8 +94,12 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
       initialPhases[i] = toneConfig.initialPhase;
     }
 
+    final intervalMicroseconds = (1000000 / sampleRate).round();
+
     while (_hasActiveSubscribers) {
-      for (var t = 0; t < 1000; t++) {
+      final stopwatch = Stopwatch()..start();
+
+      for (var t = 0; t < batchSize; t++) {
         double value = 0.0;
 
         for (var i = 0; i < toneConfigsLength; i++) {
@@ -84,7 +111,11 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
 
       yield TimeSeriesData()..data.addAll(timeSeries);
 
-      await Future.delayed(Duration(milliseconds: (1000 / sampleRate).round()));
+      final elapsedMicroseconds = stopwatch.elapsedMicroseconds;
+      if (elapsedMicroseconds < intervalMicroseconds) {
+        await Future.delayed(
+            Duration(microseconds: intervalMicroseconds - elapsedMicroseconds));
+      }
     }
   }
 }
