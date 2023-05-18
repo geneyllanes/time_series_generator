@@ -12,18 +12,24 @@ class Client {
 
     // Start the stream
     final request = TimeSeriesConfig()
-      ..sampleRate = 10000.0
+      ..sampleRate = 44100.0
       ..tones.add(
         ToneConfig()
           ..initialPhase = 0.0
           ..amplitude = 1.0
-          ..frequency = 1.0,
+          ..frequency = 2000.0,
       )
       ..tones.add(
         ToneConfig()
           ..initialPhase = 0.0
-          ..amplitude = 0.5
-          ..frequency = 2.0,
+          ..amplitude = 10
+          ..frequency = 200.0,
+      )
+      ..tones.add(
+        ToneConfig()
+          ..initialPhase = 0.0
+          ..amplitude = 20
+          ..frequency = 20000.0,
       );
 
     Stream<TimeSeriesData> stream;

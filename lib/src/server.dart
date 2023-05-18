@@ -17,30 +17,25 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
     final toneConfigs = request.tones;
 
     _hasActiveSubscribers = true;
-    generateTimeSeriesFromConfig(sampleRate, toneConfigs);
 
-    return _controller.stream;
-  }
-
-  void generateTimeSeriesFromConfig(
-      double sampleRate, List<ToneConfig> toneConfigs) {
     _controller = StreamController<TimeSeriesData>(
       onCancel: () {
         _logger.info('Stream canceled. Stopping time series generation.');
         _hasActiveSubscribers = false;
         _controller.close();
       },
-    );
+      onListen: () {
+        _logger.info('Starting time series generation.');
+      },
+    )..addStream(
+        generateTimeSeriesStream(sampleRate, toneConfigs),
+      );
 
-    _controller.addStream(
-      generateTimeSeriesStream(sampleRate, toneConfigs),
-    );
+    return _controller.stream;
   }
 
   Stream<TimeSeriesData> generateTimeSeriesStream(
       double sampleRate, List<ToneConfig> toneConfigs) async* {
-    _logger.info('Starting time series generation.');
-
     final batchSize = 100; // Number of data points to batch together
     final timeSeries = List<double>.filled(batchSize, 0.0);
     final int toneConfigsLength = toneConfigs.length;
