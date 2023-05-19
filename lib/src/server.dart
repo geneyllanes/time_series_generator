@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:time_series_generator/src/generated/time_series_generator.dart';
@@ -8,10 +9,9 @@ import 'package:time_series_generator/src/generated/time_series_generator.dart';
 class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
   final _logger = Logger('TimeSeriesGeneratorService');
 
-  StreamController<TimeSeriesData> _broadcastController =
-      StreamController.broadcast();
-
-  int _subscriberCount = 0; // Track the number of subscribers
+  StreamGroup<TimeSeriesData> _streamGroup = StreamGroup<TimeSeriesData>();
+  Map<int, StreamController<TimeSeriesData>> _subscriberControllers = {};
+  int _subscriberId = 0;
 
   @override
   Future<PublishResponse> publishTimeSeries(
@@ -20,10 +20,8 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
     Stream<TimeSeriesData> dataStream =
         generateTimeSeries(request.sampleRate, request.tones);
 
-    // Notify subscribers
-    await dataStream.forEach((data) {
-      _broadcastController.add(data);
-    });
+    // Add data stream to the StreamGroup
+    _streamGroup.add(dataStream);
 
     return PublishResponse()
       ..id = 1
@@ -33,15 +31,22 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
   @override
   Stream<TimeSeriesData> subscribeToTimeSeries(
       grpc.ServiceCall call, Empty request) {
-    _subscriberCount++; // Increment subscriber count
-    print('Subscription added');
-    return _broadcastController.stream
-        .transform(StreamTransformer.fromHandlers(handleDone: (sink) {
-      _subscriberCount--; // Decrement subscriber count when subscription is done
-      if (_subscriberCount == 0) {
-        stopGeneratingData(); // Stop generating data if no subscribers remaining
-      }
-    }));
+    final subscriberController = StreamController<TimeSeriesData>();
+    final subscriberId = _subscriberId++;
+
+    // Add subscriber's StreamController to the map
+    _subscriberControllers[subscriberId] = subscriberController;
+
+    // Add subscriber's StreamController to the StreamGroup
+    _streamGroup.add(subscriberController.stream);
+
+    // When the subscriber cancels the subscription, remove the StreamController from the map
+    subscriberController.onCancel = () {
+      _subscriberControllers.remove(subscriberId);
+    };
+
+    print('Subscriber $subscriberId added');
+    return subscriberController.stream;
   }
 
   Stream<TimeSeriesData> generateTimeSeries(
@@ -98,7 +103,9 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
   }
 
   void stopGeneratingData() {
-    _broadcastController.close(); // Close the stream to stop generating data
+    _streamGroup.close();
+    _subscriberControllers.forEach((_, controller) => controller.close());
+    _subscriberControllers.clear();
   }
 }
 
@@ -117,30 +124,23 @@ class Server {
 
     await server.serve(port: 8080);
     print('Server listening on port ${server.port}...');
-// Handle the shutdown signal
-    await _waitForShutdownSignal();
 
-    // Stop the server gracefully
-    await server.shutdown();
+    // Register the onExit callback to handle program termination
+    registerOnExitCallback(server);
   }
 
-  static Future<void> _waitForShutdownSignal() async {
-    final completer = Completer<void>();
-
-    // Register the signal handler for termination signals
-    ProcessSignal.sigint.watch().listen((signal) {
+  static void registerOnExitCallback(grpc.Server server) {
+    ProcessSignal.sigint.watch().listen((signal) async {
       print('Received signal: ${signal.toString()}. Shutting down...');
-      completer.complete();
+
+      // Stop the data generation
+      TimeSeriesGeneratorService().stopGeneratingData();
+
+      // Gracefully shutdown the server
+      await server.shutdown();
+
+      // Exit the program
+      exit(0);
     });
-
-    // Register the signal handler for termination signals on Windows
-    if (Platform.isWindows) {
-      ProcessSignal.sigterm.watch().listen((signal) {
-        print('Received signal: ${signal.toString()}. Shutting down...');
-        completer.complete();
-      });
-    }
-
-    await completer.future;
   }
 }
