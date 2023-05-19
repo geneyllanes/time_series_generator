@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:time_series_generator/src/generated/time_series_generator.dart';
