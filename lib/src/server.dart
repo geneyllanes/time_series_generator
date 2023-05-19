@@ -1,40 +1,50 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
-import 'package:grpc/grpc.dart' as grpc;
 import 'package:logging/logging.dart';
+import 'package:grpc/grpc.dart' as grpc;
 import 'package:time_series_generator/src/generated/time_series_generator.dart';
 
-final Logger _logger = Logger('TimeSeriesGenerator');
-
 class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
-  late StreamController<TimeSeriesData> _controller;
-  bool _hasActiveSubscribers = false;
+  final _logger = Logger('TimeSeriesGeneratorService');
+
+  StreamController<TimeSeriesData> _broadcastController =
+      StreamController.broadcast();
+
+  int _subscriberCount = 0; // Track the number of subscribers
 
   @override
-  Stream<TimeSeriesData> generateTimeSeries(
-      grpc.ServiceCall call, TimeSeriesConfig request) {
-    final sampleRate = request.sampleRate;
-    final toneConfigs = request.tones;
+  Future<PublishResponse> publishTimeSeries(
+      grpc.ServiceCall call, TimeSeriesConfig request) async {
+    // Generate time series data
+    Stream<TimeSeriesData> dataStream =
+        generateTimeSeries(request.sampleRate, request.tones);
 
-    _hasActiveSubscribers = true;
+    // Notify subscribers
+    await dataStream.forEach((data) {
+      _broadcastController.add(data);
+    });
 
-    _controller = StreamController<TimeSeriesData>(
-      onCancel: () {
-        _logger.info('Stream canceled. Stopping time series generation.');
-        _hasActiveSubscribers = false;
-        _controller.close();
-      },
-      onListen: () {
-        _logger.info('Starting time series generation.');
-      },
-    )..addStream(
-        generateTimeSeriesStream(sampleRate, toneConfigs),
-      );
-
-    return _controller.stream;
+    return PublishResponse()
+      ..id = 1
+      ..message = 'Publishing';
   }
 
-  Stream<TimeSeriesData> generateTimeSeriesStream(
+  @override
+  Stream<TimeSeriesData> subscribeToTimeSeries(
+      grpc.ServiceCall call, Empty request) {
+    _subscriberCount++; // Increment subscriber count
+    print('Subscription added');
+    return _broadcastController.stream
+        .transform(StreamTransformer.fromHandlers(handleDone: (sink) {
+      _subscriberCount--; // Decrement subscriber count when subscription is done
+      if (_subscriberCount == 0) {
+        stopGeneratingData(); // Stop generating data if no subscribers remaining
+      }
+    }));
+  }
+
+  Stream<TimeSeriesData> generateTimeSeries(
       double sampleRate, List<ToneConfig> toneConfigs) async* {
     final batchSize = 100; // Number of data points to batch together
     final timeSeries = List<double>.filled(batchSize, 0.0);
@@ -46,6 +56,16 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
 
     for (var i = 0; i < toneConfigsLength; i++) {
       final toneConfig = toneConfigs[i];
+
+      // Check for invalid values
+      if (toneConfig.frequency.isNaN ||
+          toneConfig.frequency.isInfinite ||
+          sampleRate.isNaN ||
+          sampleRate.isInfinite ||
+          sampleRate <= 0) {
+        throw Exception('Invalid frequency or sample rate');
+      }
+
       constants[i] = 2 * pi * toneConfig.frequency / sampleRate;
       amplitudes[i] = toneConfig.amplitude;
       initialPhases[i] = toneConfig.initialPhase;
@@ -53,7 +73,7 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
 
     final intervalMicroseconds = (1000000 / sampleRate).round();
 
-    while (_hasActiveSubscribers) {
+    while (true) {
       final stopwatch = Stopwatch()..start();
 
       for (var t = 0; t < batchSize; t++) {
@@ -64,6 +84,7 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
         }
 
         timeSeries[t] = value;
+        _logger.info('Generator value: $value'); // Logging the generated value
       }
 
       yield TimeSeriesData()..data.addAll(timeSeries);
@@ -74,6 +95,10 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
             Duration(microseconds: intervalMicroseconds - elapsedMicroseconds));
       }
     }
+  }
+
+  void stopGeneratingData() {
+    _broadcastController.close(); // Close the stream to stop generating data
   }
 }
 
@@ -91,6 +116,31 @@ class Server {
     final server = grpc.Server([TimeSeriesGeneratorService()]);
 
     await server.serve(port: 8080);
-    _logger.info('Server listening on port ${server.port}...');
+    print('Server listening on port ${server.port}...');
+// Handle the shutdown signal
+    await _waitForShutdownSignal();
+
+    // Stop the server gracefully
+    await server.shutdown();
+  }
+
+  static Future<void> _waitForShutdownSignal() async {
+    final completer = Completer<void>();
+
+    // Register the signal handler for termination signals
+    ProcessSignal.sigint.watch().listen((signal) {
+      print('Received signal: ${signal.toString()}. Shutting down...');
+      completer.complete();
+    });
+
+    // Register the signal handler for termination signals on Windows
+    if (Platform.isWindows) {
+      ProcessSignal.sigterm.watch().listen((signal) {
+        print('Received signal: ${signal.toString()}. Shutting down...');
+        completer.complete();
+      });
+    }
+
+    await completer.future;
   }
 }

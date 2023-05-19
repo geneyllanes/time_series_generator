@@ -41,3 +41,21 @@ const TimeSeriesData$json = const {
 
 /// Descriptor for `TimeSeriesData`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List timeSeriesDataDescriptor = $convert.base64Decode('Cg5UaW1lU2VyaWVzRGF0YRISCgRkYXRhGAEgAygCUgRkYXRh');
+@$core.Deprecated('Use publishResponseDescriptor instead')
+const PublishResponse$json = const {
+  '1': 'PublishResponse',
+  '2': const [
+    const {'1': 'id', '3': 1, '4': 1, '5': 5, '10': 'id'},
+    const {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `PublishResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List publishResponseDescriptor = $convert.base64Decode('Cg9QdWJsaXNoUmVzcG9uc2USDgoCaWQYASABKAVSAmlkEhgKB21lc3NhZ2UYAiABKAlSB21lc3NhZ2U=');
+@$core.Deprecated('Use emptyDescriptor instead')
+const Empty$json = const {
+  '1': 'Empty',
+};
+
+/// Descriptor for `Empty`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List emptyDescriptor = $convert.base64Decode('CgVFbXB0eQ==');

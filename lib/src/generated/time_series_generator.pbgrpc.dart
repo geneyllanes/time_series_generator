@@ -14,10 +14,16 @@ import 'time_series_generator.pb.dart' as $0;
 export 'time_series_generator.pb.dart';
 
 class TimeSeriesGeneratorClient extends $grpc.Client {
-  static final _$generateTimeSeries =
-      $grpc.ClientMethod<$0.TimeSeriesConfig, $0.TimeSeriesData>(
-          '/timeseries.TimeSeriesGenerator/GenerateTimeSeries',
+  static final _$publishTimeSeries =
+      $grpc.ClientMethod<$0.TimeSeriesConfig, $0.PublishResponse>(
+          '/timeseries.TimeSeriesGenerator/PublishTimeSeries',
           ($0.TimeSeriesConfig value) => value.writeToBuffer(),
+          ($core.List<$core.int> value) =>
+              $0.PublishResponse.fromBuffer(value));
+  static final _$subscribeToTimeSeries =
+      $grpc.ClientMethod<$0.Empty, $0.TimeSeriesData>(
+          '/timeseries.TimeSeriesGenerator/SubscribeToTimeSeries',
+          ($0.Empty value) => value.writeToBuffer(),
           ($core.List<$core.int> value) => $0.TimeSeriesData.fromBuffer(value));
 
   TimeSeriesGeneratorClient($grpc.ClientChannel channel,
@@ -25,11 +31,17 @@ class TimeSeriesGeneratorClient extends $grpc.Client {
       $core.Iterable<$grpc.ClientInterceptor>? interceptors})
       : super(channel, options: options, interceptors: interceptors);
 
-  $grpc.ResponseStream<$0.TimeSeriesData> generateTimeSeries(
+  $grpc.ResponseFuture<$0.PublishResponse> publishTimeSeries(
       $0.TimeSeriesConfig request,
       {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$publishTimeSeries, request, options: options);
+  }
+
+  $grpc.ResponseStream<$0.TimeSeriesData> subscribeToTimeSeries(
+      $0.Empty request,
+      {$grpc.CallOptions? options}) {
     return $createStreamingCall(
-        _$generateTimeSeries, $async.Stream.fromIterable([request]),
+        _$subscribeToTimeSeries, $async.Stream.fromIterable([request]),
         options: options);
   }
 }
@@ -38,21 +50,35 @@ abstract class TimeSeriesGeneratorServiceBase extends $grpc.Service {
   $core.String get $name => 'timeseries.TimeSeriesGenerator';
 
   TimeSeriesGeneratorServiceBase() {
-    $addMethod($grpc.ServiceMethod<$0.TimeSeriesConfig, $0.TimeSeriesData>(
-        'GenerateTimeSeries',
-        generateTimeSeries_Pre,
+    $addMethod($grpc.ServiceMethod<$0.TimeSeriesConfig, $0.PublishResponse>(
+        'PublishTimeSeries',
+        publishTimeSeries_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.TimeSeriesConfig.fromBuffer(value),
+        ($0.PublishResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.TimeSeriesData>(
+        'SubscribeToTimeSeries',
+        subscribeToTimeSeries_Pre,
         false,
         true,
-        ($core.List<$core.int> value) => $0.TimeSeriesConfig.fromBuffer(value),
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.TimeSeriesData value) => value.writeToBuffer()));
   }
 
-  $async.Stream<$0.TimeSeriesData> generateTimeSeries_Pre(
+  $async.Future<$0.PublishResponse> publishTimeSeries_Pre(
       $grpc.ServiceCall call,
-      $async.Future<$0.TimeSeriesConfig> request) async* {
-    yield* generateTimeSeries(call, await request);
+      $async.Future<$0.TimeSeriesConfig> request) async {
+    return publishTimeSeries(call, await request);
   }
 
-  $async.Stream<$0.TimeSeriesData> generateTimeSeries(
+  $async.Stream<$0.TimeSeriesData> subscribeToTimeSeries_Pre(
+      $grpc.ServiceCall call, $async.Future<$0.Empty> request) async* {
+    yield* subscribeToTimeSeries(call, await request);
+  }
+
+  $async.Future<$0.PublishResponse> publishTimeSeries(
       $grpc.ServiceCall call, $0.TimeSeriesConfig request);
+  $async.Stream<$0.TimeSeriesData> subscribeToTimeSeries(
+      $grpc.ServiceCall call, $0.Empty request);
 }

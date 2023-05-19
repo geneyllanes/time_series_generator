@@ -8,15 +8,23 @@ message TimeSeriesConfig {
 }
 
 message ToneConfig {
-    float initial_phase = 1;
-    float amplitude = 2;
-    float frequency = 3;
+  float initial_phase = 1;
+  float amplitude = 2;
+  float frequency = 3;
 }
 
 message TimeSeriesData {
   repeated float data = 1;
 }
 
-service TimeSeriesGenerator {
-    rpc GenerateTimeSeries (TimeSeriesConfig) returns (stream TimeSeriesData) {}
+message PublishResponse {
+  int32 id = 1;  // Identifier for the published time series
+  string message = 2;  // Optional message for the response
 }
+
+service TimeSeriesGenerator {
+  rpc PublishTimeSeries(TimeSeriesConfig) returns (PublishResponse) {}
+  rpc SubscribeToTimeSeries(Empty) returns (stream TimeSeriesData) {}
+}
+
+message Empty {}
