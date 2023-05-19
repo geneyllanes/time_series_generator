@@ -9,9 +9,11 @@ import 'package:time_series_generator/src/generated/time_series_generator.dart';
 class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
   final _logger = Logger('TimeSeriesGeneratorService');
 
-  StreamGroup<TimeSeriesData> _streamGroup = StreamGroup<TimeSeriesData>();
-  Map<int, StreamController<TimeSeriesData>> _subscriberControllers = {};
+  StreamController<TimeSeriesData> _broadcastController =
+      StreamController.broadcast();
+
   int _subscriberId = 0;
+  Map<int, StreamController<TimeSeriesData>> _subscriberControllers = {};
 
   @override
   Future<PublishResponse> publishTimeSeries(
@@ -20,8 +22,12 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
     Stream<TimeSeriesData> dataStream =
         generateTimeSeries(request.sampleRate, request.tones);
 
-    // Add data stream to the StreamGroup
-    _streamGroup.add(dataStream);
+    _logger.info('publishing data to the broadcast');
+
+    // Add data stream to the broadcast controller
+    dataStream.listen((data) {
+      _broadcastController.add(data);
+    });
 
     return PublishResponse()
       ..id = 1
@@ -32,20 +38,27 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
   Stream<TimeSeriesData> subscribeToTimeSeries(
       grpc.ServiceCall call, Empty request) {
     final subscriberController = StreamController<TimeSeriesData>();
+
     final subscriberId = _subscriberId++;
+    print('Subscriber $subscriberId added');
 
-    // Add subscriber's StreamController to the map
-    _subscriberControllers[subscriberId] = subscriberController;
-
-    // Add subscriber's StreamController to the StreamGroup
-    _streamGroup.add(subscriberController.stream);
-
-    // When the subscriber cancels the subscription, remove the StreamController from the map
     subscriberController.onCancel = () {
-      _subscriberControllers.remove(subscriberId);
+      print('Subscriber $subscriberId unsubscribed');
+      _subscriberControllers
+          .remove(subscriberId); // Remove the subscriber's controller
     };
 
-    print('Subscriber $subscriberId added');
+    _subscriberControllers[subscriberId] =
+        subscriberController; // Store the subscriber's controller
+
+    _broadcastController.stream.listen(
+      (data) {
+        subscriberController.add(data);
+      },
+      onError: subscriberController.addError,
+      onDone: subscriberController.close,
+    );
+
     return subscriberController.stream;
   }
 
@@ -89,7 +102,7 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
         }
 
         timeSeries[t] = value;
-        _logger.info('Generator value: $value'); // Logging the generated value
+        // _logger.info('Generator value: $value'); // Logging the generated value
       }
 
       yield TimeSeriesData()..data.addAll(timeSeries);
@@ -103,8 +116,14 @@ class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
   }
 
   void stopGeneratingData() {
-    _streamGroup.close();
-    _subscriberControllers.forEach((_, controller) => controller.close());
+    // Close the broadcast stream
+    _broadcastController.close();
+
+    // Close the individual subscriber stream controllers and cancel the subscription
+    _subscriberControllers.forEach((_, controller) {
+      controller.close();
+      controller.sink.close();
+    });
     _subscriberControllers.clear();
   }
 }
@@ -120,21 +139,23 @@ class Server {
   static Future<void> main(List<String> args) async {
     configureLogger();
 
-    final server = grpc.Server([TimeSeriesGeneratorService()]);
+    final service = TimeSeriesGeneratorService();
+    final server = grpc.Server([service]);
 
     await server.serve(port: 8080);
     print('Server listening on port ${server.port}...');
 
     // Register the onExit callback to handle program termination
-    registerOnExitCallback(server);
+    registerOnExitCallback(server, service);
   }
 
-  static void registerOnExitCallback(grpc.Server server) {
+  static void registerOnExitCallback(
+      grpc.Server server, TimeSeriesGeneratorService service) {
     ProcessSignal.sigint.watch().listen((signal) async {
       print('Received signal: ${signal.toString()}. Shutting down...');
 
       // Stop the data generation
-      TimeSeriesGeneratorService().stopGeneratingData();
+      service.stopGeneratingData();
 
       // Gracefully shutdown the server
       await server.shutdown();
