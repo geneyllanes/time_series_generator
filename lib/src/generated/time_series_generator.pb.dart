@@ -139,19 +139,73 @@ class ToneConfig extends $pb.GeneratedMessage {
   void clearFrequency() => clearField(3);
 }
 
+class BatchedData extends $pb.GeneratedMessage {
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'BatchedData', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'timeseries'), createEmptyInstance: create)
+    ..p<$core.double>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'xValues', $pb.PbFieldType.KD, protoName: 'xValues')
+    ..p<$core.double>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'yValues', $pb.PbFieldType.KD, protoName: 'yValues')
+    ..hasRequiredFields = false
+  ;
+
+  BatchedData._() : super();
+  factory BatchedData({
+    $core.Iterable<$core.double>? xValues,
+    $core.Iterable<$core.double>? yValues,
+  }) {
+    final _result = create();
+    if (xValues != null) {
+      _result.xValues.addAll(xValues);
+    }
+    if (yValues != null) {
+      _result.yValues.addAll(yValues);
+    }
+    return _result;
+  }
+  factory BatchedData.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BatchedData.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BatchedData clone() => BatchedData()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BatchedData copyWith(void Function(BatchedData) updates) => super.copyWith((message) => updates(message as BatchedData)) as BatchedData; // ignore: deprecated_member_use
+  $pb.BuilderInfo get info_ => _i;
+  @$core.pragma('dart2js:noInline')
+  static BatchedData create() => BatchedData._();
+  BatchedData createEmptyInstance() => create();
+  static $pb.PbList<BatchedData> createRepeated() => $pb.PbList<BatchedData>();
+  @$core.pragma('dart2js:noInline')
+  static BatchedData getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BatchedData>(create);
+  static BatchedData? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<$core.double> get xValues => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.List<$core.double> get yValues => $_getList(1);
+}
+
 class TimeSeriesData extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'TimeSeriesData', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'timeseries'), createEmptyInstance: create)
-    ..p<$core.double>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'data', $pb.PbFieldType.KF)
+    ..a<$core.double>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'x', $pb.PbFieldType.OD)
+    ..a<$core.double>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'y', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
   TimeSeriesData._() : super();
   factory TimeSeriesData({
-    $core.Iterable<$core.double>? data,
+    $core.double? x,
+    $core.double? y,
   }) {
     final _result = create();
-    if (data != null) {
-      _result.data.addAll(data);
+    if (x != null) {
+      _result.x = x;
+    }
+    if (y != null) {
+      _result.y = y;
     }
     return _result;
   }
@@ -177,7 +231,22 @@ class TimeSeriesData extends $pb.GeneratedMessage {
   static TimeSeriesData? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<$core.double> get data => $_getList(0);
+  $core.double get x => $_getN(0);
+  @$pb.TagNumber(1)
+  set x($core.double v) { $_setDouble(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasX() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearX() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get y => $_getN(1);
+  @$pb.TagNumber(2)
+  set y($core.double v) { $_setDouble(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasY() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearY() => clearField(2);
 }
 
 class PublishResponse extends $pb.GeneratedMessage {

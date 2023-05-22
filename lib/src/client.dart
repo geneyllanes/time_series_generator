@@ -2,6 +2,10 @@ import 'package:grpc/grpc.dart' as grpc;
 import 'package:time_series_generator/src/generated/time_series_generator.dart';
 
 class Client {
+  final int batchSize;
+
+  Client({this.batchSize = 100});
+
   Future<void> main(List<String> args) async {
     final channel = grpc.ClientChannel('localhost',
         port: 8080,
@@ -15,8 +19,9 @@ class Client {
       final subscribeRequest = Empty();
 
       final subscription = client.subscribeToTimeSeries(subscribeRequest);
-      await for (final timeSeriesData in subscription) {
-        print('Received time series data: ${timeSeriesData.data}');
+      await for (final batchedData in subscription) {
+        print(
+            'Received batch ${batchedData.yValues.firstOrNull.toString()}');
       }
     } catch (e) {
       print('Error: $e');

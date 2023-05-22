@@ -9,8 +9,12 @@ dependencies:
   async: ^2.2.0
   grpc: ^3.1.0
   protobuf: ^2.1.0
-  collection: ^1.15.0-nullsafety.4
   logging: ^1.1.0
+  event_bus: ^2.0.0
+  bloc: ^8.1.2
+  flutter_bloc: ^8.1.2
+  equatable: ^2.0.5
+  rxdart: ^0.27.7
 
 dev_dependencies:
   lints: ^2.0.0
