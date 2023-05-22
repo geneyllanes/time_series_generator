@@ -5,18 +5,18 @@ class TimeSeriesGeneratorState extends Equatable {
   final int? batchSize;
   final double? sampleRate;
   final List<ToneConfig>? toneConfigs;
-  final TimeSeriesData? current;
   final BatchedData? batchedData;
   final bool? isGenerating;
+  final StreamSubscription? dataGenerationSubscription;
 
   TimeSeriesGeneratorState({
     this.subscribers = const [],
     this.batchSize = 10000,
     this.sampleRate = 0,
     this.toneConfigs = const [],
-    required this.current,
     required this.batchedData,
     this.isGenerating = false,
+    this.dataGenerationSubscription,
   });
 
   TimeSeriesGeneratorState copyWith({
@@ -24,18 +24,19 @@ class TimeSeriesGeneratorState extends Equatable {
     int? batchSize,
     double? sampleRate,
     List<ToneConfig>? toneConfigs,
-    TimeSeriesData? current,
     BatchedData? batchedData,
     bool? isGenerating,
+    StreamSubscription? dataGenerationSubscription,
   }) {
     return TimeSeriesGeneratorState(
       subscribers: subscribers ?? this.subscribers,
       batchSize: batchSize ?? this.batchSize,
       sampleRate: sampleRate ?? this.sampleRate,
       toneConfigs: toneConfigs ?? this.toneConfigs,
-      current: current ?? this.current,
       batchedData: batchedData ?? this.batchedData,
       isGenerating: isGenerating ?? this.isGenerating,
+      dataGenerationSubscription:
+          dataGenerationSubscription ?? this.dataGenerationSubscription,
     );
   }
 
@@ -46,7 +47,6 @@ class TimeSeriesGeneratorState extends Equatable {
       batchSize,
       sampleRate,
       toneConfigs,
-      current,
       batchedData,
       isGenerating,
     ];

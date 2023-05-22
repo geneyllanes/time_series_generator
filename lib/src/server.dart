@@ -5,7 +5,9 @@ import 'package:time_series_generator/bloc/time_series_generator_bloc.dart';
 import 'package:time_series_generator/src/generated/time_series_generator.dart';
 
 class TimeSeriesGeneratorService extends TimeSeriesGeneratorServiceBase {
-  final TimeSeriesGeneratorBloc generatorBloc = TimeSeriesGeneratorBloc();
+  TimeSeriesGeneratorService({required this.generatorBloc});
+
+  final TimeSeriesGeneratorBloc generatorBloc;
 
   @override
   Future<PublishResponse> publishTimeSeries(
@@ -47,7 +49,8 @@ class Server {
   /// It also registers an onExit callback to gracefully shut down the server and stop data generation when a SIGINT signal (e.g., Ctrl+C) is received.
 
   static Future<void> main(List<String> args) async {
-    final service = TimeSeriesGeneratorService();
+    final TimeSeriesGeneratorBloc generatorBloc = TimeSeriesGeneratorBloc();
+    final service = TimeSeriesGeneratorService(generatorBloc: generatorBloc);
     final server = grpc.Server([service]);
 
     await server.serve(port: 8080);
